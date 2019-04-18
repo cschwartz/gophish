@@ -1,7 +1,13 @@
 package models
 
 import (
+	"archive/zip"
+	"bytes"
+	"encoding/xml"
 	"errors"
+	"fmt"
+	"io"
+	"text/template"
 	"time"
 
 	log "github.com/gophish/gophish/logger"
@@ -114,4 +120,98 @@ func DeleteTrackedAttachment(id int64, uid int64) error {
 		log.Error(err)
 	}
 	return err
+}
+
+// GenerateOpenDocument parses the Custom Properties of the OpenDocumentFormat content given the Phishing Context
+// Returns the templated ODF Document or an error.
+func GenerateOpenDocument(content []byte, context PhishingTemplateContext) (io.Reader, error) {
+	inReader := bytes.NewReader(content)
+
+	r, err := zip.NewReader(inReader, inReader.Size())
+	out := new(bytes.Buffer)
+
+	if err != nil {
+		return nil, err
+	}
+
+	w := zip.NewWriter(out)
+
+	for _, f := range r.File {
+		in, err := f.Open()
+		if err != nil {
+			return nil, err
+		}
+		out, err := w.Create(f.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		if f.Name == "docProps/custom.xml" {
+			processCustomProps(out, in, context)
+		} else {
+			io.Copy(out, in)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	err = w.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.NewReader(out.Bytes()), err
+}
+
+func propertyFromContext(propertyValue string, context PhishingTemplateContext) (string, error) {
+	templateBuffer := new(bytes.Buffer)
+	template, err := template.New("template").Parse(propertyValue)
+	if err != nil {
+		return templateBuffer.String(), err
+	}
+	err = template.Execute(templateBuffer, context)
+	if err != nil {
+		return templateBuffer.String(), err
+	}
+	return templateBuffer.String(), nil
+}
+
+func processCustomProps(out io.Writer, in io.Reader, context PhishingTemplateContext) {
+	decoder := xml.NewDecoder(in)
+	encoder := xml.NewEncoder(out)
+	ofInterest := false
+	for {
+		token, err := decoder.RawToken()
+		if token == nil {
+			break
+		}
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		switch v := token.(type) {
+		case xml.StartElement:
+			if v.Name.Local == "property" {
+				ofInterest = true
+			}
+			encoder.EncodeToken(v)
+		case xml.EndElement:
+			if v.Name.Local == "property" {
+				ofInterest = false
+			}
+			encoder.EncodeToken(v)
+		case xml.CharData:
+			if ofInterest == true {
+				value, err := propertyFromContext(string(v), context)
+				if err != nil {
+					fmt.Println(err)
+				}
+				v = []byte(value)
+			}
+			encoder.EncodeToken(v)
+		case xml.Comment, xml.ProcInst, xml.Directive:
+			encoder.EncodeToken(v)
+		}
+	}
+	encoder.Flush()
 }

@@ -1,7 +1,6 @@
 package models
 
 import (
-	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -228,7 +227,12 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 	// Attach the tracked files
 	for _, ta := range c.TrackedAttachments {
 		header := gomail.SetHeader(map[string][]string{"Content-ID": {fmt.Sprintf("<%s>", ta.Filename)}})
-		msg.AttachReader(ta.Filename, bytes.NewReader(ta.Content), header)
+		tracker := OpenDocumentTracker{content: ta.Content}
+		content, err := tracker.GenerateDocument(ptx)
+		if err != nil {
+			log.Error(err)
+		}
+		msg.AttachReader(ta.Filename, content, header)
 	}
 
 	return nil
