@@ -32,6 +32,12 @@ function launch() {
                         name: group.text
                     });
                 })
+                tracked_attachments = []
+                $("#tracked-attachments").select2("data").forEach(function (tracked_attachment) {
+                    tracked_attachments.push({
+                        name: tracked_attachment.text
+                    });
+                })
                 // Validate our fields
                 var send_by_date = $("#send_by_date").val()
                 if (send_by_date != "") {
@@ -52,6 +58,7 @@ function launch() {
                     launch_date: moment($("#launch_date").val(), "MMMM Do YYYY, h:mm a").utc().format(),
                     send_by_date: send_by_date || null,
                     groups: groups,
+                    tracked_attachments: tracked_attachments,
                 }
                 // Submit the campaign
                 api.campaigns.post(campaign)
@@ -171,6 +178,22 @@ function setupOptions() {
                 $("#users.form-control").select2({
                     placeholder: "Select Groups",
                     data: group_s2,
+                });
+            }
+        });
+    api.trackedAttachments.get()
+        .success(function (trackedAttachments) {
+            if (trackedAttachments.length == 0) {
+                modalError("No Tracked Attachments found!")
+                return false;
+            } else {
+                var tracked_attachments_s2 = $.map(trackedAttachments, function (obj) {
+                    obj.text = obj.name
+                    return obj
+                });
+                $("#tracked-attachments.form-control").select2({
+                    placeholder: "Select Tracked Attachments",
+                    data: tracked_attachments_s2,
                 });
             }
         });

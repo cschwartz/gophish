@@ -1,6 +1,7 @@
 package models
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -146,6 +147,11 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 		return err
 	}
 
+	err = db.Model(&c).Related(&c.TrackedAttachments, "TrackedAttachments").Error
+	if err != nil {
+		return err
+	}
+
 	f, err := mail.ParseAddress(c.SMTP.FromAddress)
 	if err != nil {
 		return err
@@ -217,6 +223,12 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 				return err
 			}), gomail.SetHeader(h)
 		}(a))
+	}
+
+	// Attach the tracked files
+	for _, ta := range c.TrackedAttachments {
+		header := gomail.SetHeader(map[string][]string{"Content-ID": {fmt.Sprintf("<%s>", ta.Filename)}})
+		msg.AttachReader(ta.Filename, bytes.NewReader(ta.Content), header)
 	}
 
 	return nil

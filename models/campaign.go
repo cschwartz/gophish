@@ -12,24 +12,25 @@ import (
 
 // Campaign is a struct representing a created campaign
 type Campaign struct {
-	Id            int64     `json:"id"`
-	UserId        int64     `json:"-"`
-	Name          string    `json:"name" sql:"not null"`
-	CreatedDate   time.Time `json:"created_date"`
-	LaunchDate    time.Time `json:"launch_date"`
-	SendByDate    time.Time `json:"send_by_date"`
-	CompletedDate time.Time `json:"completed_date"`
-	TemplateId    int64     `json:"-"`
-	Template      Template  `json:"template"`
-	PageId        int64     `json:"-"`
-	Page          Page      `json:"page"`
-	Status        string    `json:"status"`
-	Results       []Result  `json:"results,omitempty"`
-	Groups        []Group   `json:"groups,omitempty"`
-	Events        []Event   `json:"timeline,omitemtpy"`
-	SMTPId        int64     `json:"-"`
-	SMTP          SMTP      `json:"smtp"`
-	URL           string    `json:"url"`
+	Id                 int64               `json:"id"`
+	UserId             int64               `json:"-"`
+	Name               string              `json:"name" sql:"not null"`
+	CreatedDate        time.Time           `json:"created_date"`
+	LaunchDate         time.Time           `json:"launch_date"`
+	SendByDate         time.Time           `json:"send_by_date"`
+	CompletedDate      time.Time           `json:"completed_date"`
+	TemplateId         int64               `json:"-"`
+	Template           Template            `json:"template"`
+	PageId             int64               `json:"-"`
+	Page               Page                `json:"page"`
+	Status             string              `json:"status"`
+	Results            []Result            `json:"results,omitempty"`
+	Groups             []Group             `json:"groups,omitempty"`
+	TrackedAttachments []TrackedAttachment `json:"tracked_attachments,omitempty" gorm:"many2many:campaign_tracked_attachments;"`
+	Events             []Event             `json:"timeline,omitemtpy"`
+	SMTPId             int64               `json:"-"`
+	SMTP               SMTP                `json:"smtp"`
+	URL                string              `json:"url"`
 }
 
 // CampaignResults is a struct representing the results from a campaign
@@ -114,6 +115,9 @@ var ErrTemplateNotFound = errors.New("Template not found")
 
 // ErrGroupNotFound indicates a group specified by the user does not exist in the database
 var ErrGroupNotFound = errors.New("Group not found")
+
+// ErrTrackedAttachmentNotFound indicates a Tracked Attachment specified by the user does not exist in the database
+var ErrTrackedAttachmentNotFound = errors.New("Tracked Attachment not found")
 
 // ErrPageNotFound indicates a page specified by the user does not exist in the database
 var ErrPageNotFound = errors.New("Page not found")
@@ -349,7 +353,7 @@ func GetCampaignSummary(id int64, uid int64) (CampaignSummary, error) {
 // GetCampaign returns the campaign, if it exists, specified by the given id and user_id.
 func GetCampaign(id int64, uid int64) (Campaign, error) {
 	c := Campaign{}
-	err := db.Where("id = ?", id).Where("user_id = ?", uid).Find(&c).Error
+	err := db.Debug().Where("id = ?", id).Where("user_id = ?", uid).Find(&c).Error
 	if err != nil {
 		log.Errorf("%s: campaign not found", err)
 		return c, err
@@ -439,6 +443,20 @@ func PostCampaign(c *Campaign, uid int64) error {
 		}
 		totalRecipients += len(c.Groups[i].Targets)
 	}
+	// Check that all Tracked Attachments exist
+	for i, t := range c.TrackedAttachments {
+		c.TrackedAttachments[i], err = GetTrackedAttachmentByName(t.Name, uid)
+		if err == gorm.ErrRecordNotFound {
+			log.WithFields(logrus.Fields{
+				"tracked_attachment": t.Name,
+			}).Error("Tracked Attachment does not exist")
+			return ErrTrackedAttachmentNotFound
+		} else if err != nil {
+			log.Error(err)
+			return err
+		}
+	}
+
 	// Check to make sure the template exists
 	t, err := GetTemplateByName(c.Template.Name, uid)
 	if err == gorm.ErrRecordNotFound {
@@ -569,6 +587,11 @@ func DeleteCampaign(id int64) error {
 		return err
 	}
 	err = db.Where("campaign_id=?", id).Delete(&MailLog{}).Error
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	err = db.Where("campaign_id=?", id).Delete(&CampaignTrackedAttachment{}).Error
 	if err != nil {
 		log.Error(err)
 		return err

@@ -18,6 +18,12 @@ type TrackedAttachment struct {
 	Filename     string    `json:"filename"`
 }
 
+// TrackedAttachment is used for a many-to-many relationship between 1..* Campaigns and 1..* Tracked Attachments
+type CampaignTrackedAttachment struct {
+	CampaignId          int64 `json:"-"`
+	TrackedAttachmentId int64 `json:"-"`
+}
+
 var ErrTrackedAttachmentNameNotSpecified = errors.New("Tracked Attachment name not specified")
 
 var ErrTrackedAttachmentContentNotSpecified = errors.New("Tracked Attachment content not specified")
