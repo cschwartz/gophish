@@ -167,6 +167,32 @@ var api = {
             return query("/pages/" + id, "DELETE", {}, false)
         }
     },
+    // trackedAttachments contains the endpoints for /tracked_attachments
+    trackedAttachments: {
+        // get() - Queries the API for GET /tracked_attachments
+        get: function () {
+            return query("/tracked_attachments/", "GET", {}, false)
+        },
+        // post() - Posts a page to POST /tracked_attachments
+        post: function (trackedAttachment) {
+            return query("/tracked_attachments/", "POST", trackedAttachment, false)
+        }
+    },
+    // trackedAttachmentsId contains the endpoints for /tracked_attachments/:id
+    trackedAttachmentsId: {
+        // get() - Queries the API for GET /tracked_attachments/:id
+        get: function (id) {
+            return query("/tracked_attachments/" + id, "GET", {}, false)
+        },
+        // put() - Puts a page to PUT /pages/:id
+        put: function (trackedAttachment) {
+            return query("/tracked_attachments/" + trackedAttachment.id, "PUT", trackedAttachment, false)
+        },
+        // delete() - Deletes a page at DELETE /tracked_attachments/:id
+        delete: function (id) {
+            return query("/tracked_attachments/" + id, "DELETE", {}, false)
+        }
+    },
     // SMTP contains the endpoints for /smtp
     SMTP: {
         // get() - Queries the API for GET /smtp

@@ -104,6 +104,7 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/users", Use(as.Users, mid.RequireLogin))
 	router.HandleFunc("/landing_pages", Use(as.LandingPages, mid.RequireLogin))
 	router.HandleFunc("/sending_profiles", Use(as.SendingProfiles, mid.RequireLogin))
+	router.HandleFunc("/tracked_attachments", Use(as.TrackedAttachments, mid.RequireLogin))
 	router.HandleFunc("/settings", Use(as.Settings, mid.RequireLogin))
 	router.HandleFunc("/register", Use(as.Register, mid.RequireLogin, mid.RequirePermission(models.PermissionModifySystem)))
 	// Create the API routes
@@ -243,6 +244,13 @@ func (as *AdminServer) SendingProfiles(w http.ResponseWriter, r *http.Request) {
 	params := newTemplateParams(r)
 	params.Title = "Sending Profiles"
 	getTemplate(w, "sending_profiles").ExecuteTemplate(w, "base", params)
+}
+
+// Attachments handles the default path and template execution
+func (as *AdminServer) TrackedAttachments(w http.ResponseWriter, r *http.Request) {
+	params := newTemplateParams(r)
+	params.Title = "Tracked Attachments"
+	getTemplate(w, "tracked_attachments").ExecuteTemplate(w, "base", params)
 }
 
 // Settings handles the changing of settings

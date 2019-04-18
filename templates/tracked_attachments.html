@@ -1,0 +1,85 @@
+{{define "body"}}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+    <div class="row">
+        <h1 class="page-header">
+            Tracked Attachments
+        </h1>
+    </div>
+    <div id="flashes" class="row"></div>
+    <div class="row">
+        <button type="button" class="btn btn-primary" onclick="edit(-1)" data-toggle="modal" data-backdrop="static"
+            data-target="#modal">
+            <i class="fa fa-plus"></i> New Tracked Attachment</button>
+    </div>
+    &nbsp;
+    <div id="loading">
+        <i class="fa fa-spinner fa-spin fa-4x"></i>
+    </div>
+    <div id="emptyMessage" class="row" style="display:none;">
+        <div class="alert alert-info">
+            No Tracked Attachments created yet. Let's create one!
+        </div>
+    </div>
+    <div class="row">
+        <table id="trackedAttachmentTable" class="table" style="display:none;">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Modified Date</th>
+                    <th class="col-md-2 no-sort"></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="groupModalLabel">New Tracked Attachment</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row" id="modal.flashes"></div>
+                <label class="control-label" for="name">Name:</label>
+                <div class="form-group">
+                    <input type="text" class="form-control" ng-model="group.name" placeholder="Tracked Attachment name"
+                        id="name" autofocus />
+                </div>
+                <div class="form-group">
+                    <span class="btn btn-danger btn-file" data-toggle="tooltip" data-placement="right"
+                        title="Supports DOCX files" id="fileUpload">
+                        <i class="fa fa-plus"></i> Tracked Attachment Content
+                        <input type="file" id="content" onchange="attach()">
+                    </span>
+                </div>
+                <div id="file-information" class="panel panel-default">
+                    <div class="panel-heading">File Information</div>
+                    <div class="panel-body">
+                        <dl class="dl-horizontal">
+                            <dt>Filename</dt>
+                            <dd id="file-filename"></dd>
+                            <dt>Type</dt>
+                            <dd id="file-type"></dd>
+                        </dl>
+                        <a id="file-download" href="#">Download</a>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}} {{define "scripts"}}
+<script src="/js/dist/app/tracked_attachments.min.js"></script>
+{{end}}
